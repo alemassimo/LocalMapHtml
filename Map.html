@@ -710,7 +710,11 @@
                     coord: l.coord,
                     text: l.text
                 })),
-                lines: lines.map(line => line.getLatLngs().map(ll => [ll.lat, ll.lng]))
+                lines: lines.map(line => line.getLatLngs().map(ll => [ll.lat, ll.lng])),
+                markers: segnaposti.map(m => ({
+                    coord: m.coord,
+                    image: m.icon.options.iconUrl // base64 string
+                }))
             };
             const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
             const url = URL.createObjectURL(blob);
@@ -789,6 +793,21 @@
                             const line = L.polyline(latlngs, { color: 'blue' }).addTo(map);
                             lines.push(line);
                             // Optionally, you can re-bind popups or eraser handlers here if needed
+                        });
+                    }
+                    
+                    // Markers (segnaposti)
+                    if (data.markers) {
+                        data.markers.forEach(m => {
+                            const customIcon = L.icon({
+                                iconUrl: m.image,
+                                iconSize: [32, 32],
+                                iconAnchor: [16, 32],
+                            });
+                            const marker = L.marker(m.coord, { icon: customIcon }).addTo(map);
+                            const segnapostoObj = { coord: m.coord, icon: customIcon, id: Date.now() + Math.random(), layer: marker };
+                            segnaposti.push(segnapostoObj);
+                            aggiungiVoceListaSegnaposto(segnapostoObj);
                         });
                     }
                 } catch (err) {
