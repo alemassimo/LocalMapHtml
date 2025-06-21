@@ -28,6 +28,10 @@ This project is a browser-based tool designed for maritime analysis, allowing us
 - **Expandable Panels**  
   The sidebar organizes all tools into collapsible panels for a clean and user-friendly interface.
 
+## Save Drawings to File
+
+You can export all your map drawings—including polygons, circles, markers, labels, and lines—to a local file. This allows you to back up your work or share it with others. Simply use the "Save" button in the interface to download your current map data as a JSON file. To restore your work, use the "Load" button and select a previously saved file.
+
 ## How to Use
 
 1. **Download or clone this repository.**
@@ -56,10 +60,6 @@ This project is a browser-based tool designed for maritime analysis, allowing us
 - All data is stored in memory and will be lost when the page is refreshed.
 - The tool is intended for local use and does not send any data to external servers (except for map tiles).
 
-## Features in Development
-
-- **Save Drawings to File**  
-    You will be able to export and save all drawn elements on the map (polygons, circles, markers, labels, lines) to a local file, making it easy to restore or share your work.
 ---
 
 **Developed for maritime professionals, researchers, and enthusiasts needing a quick and interactive way to analyze and annotate maritime maps locally.**
