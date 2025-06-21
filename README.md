@@ -56,6 +56,10 @@ This project is a browser-based tool designed for maritime analysis, allowing us
 - All data is stored in memory and will be lost when the page is refreshed.
 - The tool is intended for local use and does not send any data to external servers (except for map tiles).
 
+## Features in Development
+
+- **Save Drawings to File**  
+    You will be able to export and save all drawn elements on the map (polygons, circles, markers, labels, lines) to a local file, making it easy to restore or share your work.
 ---
 
 **Developed for maritime professionals, researchers, and enthusiasts needing a quick and interactive way to analyze and annotate maritime maps locally.**
