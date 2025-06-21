@@ -197,9 +197,15 @@
                 <button onclick="clearLines()">Clear</button>
             </div>
         </div>
+        <div>
+        <button id="saveJsonBtn">Save JSON</button>
+        </div>
+        <div>
+            <input type="file" id="loadJsonInput" style="display:none" accept=".json"/>
+            <button id="loadJsonBtn">Load JSON</button>
+        </div>
     </div>
-
-
+    
     <div id="map"></div>
     <div id="mouse-coords"></div>
      <div style="position:fixed;left:320px;bottom:10px;z-index:1001;font-size:13px;background:rgba(255,255,255,0.8);padding:4px 10px;border-radius:6px;">
@@ -692,6 +698,106 @@
             // Remove all lines
             clearLines();
         }
+        
+        document.getElementById('saveJsonBtn').addEventListener('click', function () {
+            const data = {
+                polygons: poligoni.map(p => p.getLatLngs()[0].map(ll => [ll.lat, ll.lng])),
+                circles: circleList.map(c => ({
+                    coord: c.coord,
+                    radius: c.radius
+                })),
+                labels: labels.map(l => ({
+                    coord: l.coord,
+                    text: l.text
+                })),
+                lines: lines.map(line => line.getLatLngs().map(ll => [ll.lat, ll.lng]))
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "map_data.json";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        document.getElementById('loadJsonBtn').addEventListener('click', function () {
+            document.getElementById('loadJsonInput').click();
+        });
+
+        document.getElementById('loadJsonInput').addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                try {
+                    const data = JSON.parse(event.target.result);
+                    resetAll();
+
+                    // Polygons
+                    if (data.polygons) {
+                        data.polygons.forEach(coords => {
+                            const latlngs = coords.map(c => ({ lat: c[0], lng: c[1] }));
+                            const polygon = L.polygon(latlngs, { color: 'blue' }).addTo(map);
+                            poligoni.push(polygon);
+                            latlngs.forEach(coord => {
+                                const coordObj = { coord: [coord.lat, coord.lng], id: Date.now() + Math.random() };
+                                coordList.push(coordObj);
+                                aggiungiVoceListaCoord(coordObj);
+                            });
+                        });
+                    }
+
+                    // Circles
+                    if (data.circles) {
+                        data.circles.forEach(c => {
+                            const circle = L.circle(c.coord, {
+                                color: 'red',
+                                fillColor: '#f03',
+                                fillOpacity: 0.5,
+                                radius: c.radius * 1852
+                            }).addTo(map);
+                            const circleObj = { coord: c.coord, radius: c.radius, id: Date.now() + Math.random(), layer: circle };
+                            circleList.push(circleObj);
+                            aggiungiVoceListaCircle(circleObj);
+                        });
+                    }
+
+                    // Labels
+                    if (data.labels) {
+                        data.labels.forEach(l => {
+                            const labelPopup = L.popup({
+                                closeButton: false,
+                                autoClose: false,
+                                closeOnClick: false
+                            })
+                                .setLatLng(l.coord)
+                                .setContent(l.text)
+                                .addTo(map);
+                            const labelObj = { coord: l.coord, text: l.text, id: Date.now() + Math.random(), layer: labelPopup };
+                            labels.push(labelObj);
+                            aggiungiVoceListaLabel(labelObj);
+                        });
+                    }
+
+                    // Lines
+                    if (data.lines) {
+                        data.lines.forEach(latlngsArr => {
+                            const latlngs = latlngsArr.map(c => ({ lat: c[0], lng: c[1] }));
+                            const line = L.polyline(latlngs, { color: 'blue' }).addTo(map);
+                            lines.push(line);
+                            // Optionally, you can re-bind popups or eraser handlers here if needed
+                        });
+                    }
+                } catch (err) {
+                    alert("Invalid JSON file.");
+                }
+            };
+            reader.readAsText(file);
+        });
+
     </script>
 </body>
 
