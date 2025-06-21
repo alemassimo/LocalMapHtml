@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Map with Multiple Polygons and Point Removal</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            font-family: Arial, sans-serif;
+        }
+
+        #sidebar {
+            width: 300px;
+            padding: 10px;
+            background: #f0f0f0;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
+            overflow-y: auto;
+        }
+
+        #map {
+            flex: 1;
+        }
+
+        #line-draw-cursor {
+            cursor: crosshair !important;
+        }
+
+        .line-draw-cursor {
+            cursor: crosshair !important;
+        }
+
+        .eraser-cursor {
+            cursor: not-allowed !important;
+        }
+
+        #mouse-coords {
+            position: fixed;
+            right: 20px;
+            bottom: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 14px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+        }
+
+        #mouse-coords.locked {
+            background: #ffe0e0;
+            border: 1px solid #ff8888;
+        }
+
+        .container {
+            margin-top: 20px;
+        }
+
+        .input-box {
+            margin-bottom: 10px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 150px;
+            margin-bottom: 10px;
+            resize: vertical;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 5px;
+        }
+
+        ul {
+            padding-left: 20px;
+        }
+
+        li {
+            cursor: pointer;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        li:hover {
+            color: red;
+            text-decoration: line-through;
+        }
+    </style>
+    <style>
+        .panel {
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            background: #ddd;
+            padding: 10px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .panel-header:hover {
+            background: #ccc;
+        }
+
+        .panel-content {
+            display: none;
+            padding: 10px;
+            background: #f9f9f9;
+        }
+
+        .panel-content.active {
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="sidebar">
+        <div class="panel">
+            <div class="panel-header" onclick="togglePanel(this)">Insert Polygons</div>
+            <div class="panel-content">
+                <textarea id="coordinateInput"
+                    placeholder="One coordinate per line e.g:&#10;08-20.60N 093-10.50E&#10;8.24N 93.10E"></textarea>
+                <button onclick="aggiungiCoordinate()">Add coordinates</button>
+                <button onclick="resetAll()">Reset All</button>
+                <h4>Added coordinates:</h4>
+                <ul id="listaCoord"></ul>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-header" onclick="togglePanel(this)">Insert Circular Area</div>
+            <div class="panel-content">
+                <div class="input-box">
+                    <label for="coordinate">Coordinate (Lat, Lon): </label>
+                    <input type="text" id="coordinate" placeholder="E.g. 37.7749,-122.4194" />
+                </div>
+                <div class="input-box">
+                    <label for="radius">Radius (in nautical miles): </label>
+                    <input type="number" id="radius" placeholder="E.g. 10" />
+                </div>
+                <button id="addAreaBtn">Add Circular Area</button>
+                <ul id="listaCircles"></ul>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-header" onclick="togglePanel(this)">Insert Marker</div>
+            <div class="panel-content">
+                <div class="input-box">
+                    <label for="coordinateSegnaposto">Coordinate (Lat, Lon): </label>
+                    <input type="text" id="coordinateSegnaposto" placeholder="E.g. 37.7749,-122.4194" />
+                </div>
+                <div class="input-box">
+                    <label for="imageUpload">Upload marker image: </label>
+                    <input type="file" id="imageUpload" accept="image/*" />
+                </div>
+                <button id="addSegnapostoBtn">Add Marker</button>
+                <ul id="listaSegnaposto"></ul>
+            </div>
+        </div>
+        <div class="panel">
+            <div class="panel-header" onclick="togglePanel(this)">Insert Label</div>
+            <div class="panel-content">
+                <div class="input-box">
+                    <label for="coordinateLabel">Coordinate (Lat, Lon): </label>
+                    <input type="text" id="coordinateLabel" placeholder="E.g. 37.7749,-122.4194" />
+                </div>
+                <div class="input-box">
+                    <label for="labelText">Label text: </label>
+                    <input type="text" id="labelText" placeholder="Enter label text" />
+                </div>
+                <button id="addLabelBtn">Add Label</button>
+                <ul id="listaLabels"></ul>
+            </div>
+        </div>
+        <div class="panel">
+            <div class="panel-header" onclick="togglePanel(this)">Draw Lines</div>
+            <div class="panel-content">
+                <div>
+                    <label for="toggleLineDrawing">Enable Line Drawing: </label>
+                    <input type="checkbox" id="toggleLineDrawing" onclick="toggleLineDrawingMode()" />
+                </div>
+                <div style="margin-top:8px;">
+                    <label for="toggleEraser">Eraser: </label>
+                    <input type="checkbox" id="toggleEraser" onclick="toggleEraserMode()" />
+                </div>
+                <button onclick="clearLines()">Clear</button>
+            </div>
+        </div>
+    </div>
+
+
+    <div id="map"></div>
+    <div id="mouse-coords"></div>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        function togglePanel(header) {
+            const content = header.nextElementSibling;
+            content.classList.toggle('active');
+        }
+        var map = L.map('map', { attributionControl: false }).setView([45.0, 10.0], 6); // initial center
+        // Base layer OpenStreetMap
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 18
+        }).addTo(map);
+        // Layer OpenSeaMap (overlay)
+        L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png', {
+            maxZoom: 18,
+            transparent: true
+        }).addTo(map);
+
+        document.addEventListener('keydown', function (e) {
+            if (e.ctrlKey && (e.key === 'l' || e.key === 'L')) {
+                coordsLocked = !coordsLocked;
+                const coordsDiv = document.getElementById('mouse-coords');
+                if (coordsLocked && lockedCoords) {
+                    const text = `${lockedCoords.lat.toFixed(6)} ${lockedCoords.lng.toFixed(6)}`;
+                    coordsDiv.textContent = text;
+                    coordsDiv.classList.add('locked');
+                    // Copy to clipboard
+                    if (navigator.clipboard) {
+                        navigator.clipboard.writeText(text).then(() => {
+                            // Optional: show visual feedback
+                            coordsDiv.textContent = text + " (copied)";
+                            setTimeout(() => {
+                                coordsDiv.textContent = text;
+                            }, 1200);
+                        });
+                    }
+                } else {
+                    coordsDiv.classList.remove('locked');
+                }
+                e.preventDefault();
+            }
+        });
+
+        map.on('mousemove', function (e) {
+            if (!coordsLocked) {
+                const coordsDiv = document.getElementById('mouse-coords');
+                coordsDiv.textContent =
+                    `Lat: ${e.latlng.lat.toFixed(6)}, Lon: ${e.latlng.lng.toFixed(6)} CTRL + L to lock`;
+                coordsDiv.classList.remove('locked');
+                lockedCoords = e.latlng;
+            }
+        });
+
+        var poligoni = [];
+        var coordList = [];
+        var segnaposti = [];
+        var circleList = [];
+        var labels = [];
+        var lineDrawingEnabled = false;
+        var lines = [];
+        var currentLine = null;
+        var coordsLocked = false;
+        var lockedCoords = null;
+        var tempLine = null;
+        var eraserEnabled = false;
+
+        // Add listener for "Add Label" button
+        document.getElementById('addLabelBtn').addEventListener('click', function () {
+            const coordInput = document.getElementById('coordinateLabel').value.trim();
+            const labelText = document.getElementById('labelText').value.trim();
+
+            if (!coordInput) {
+                alert("Enter a valid coordinate.");
+                return;
+            }
+
+            if (!labelText) {
+                alert("Enter label text.");
+                return;
+            }
+
+            const parsed = parseCoordinate(coordInput);
+            if (!parsed) {
+                alert("Coordinate format error.");
+                return;
+            }
+
+            const lat = parseFloat(parsed[0]);
+            const lon = parseFloat(parsed[1]);
+
+            // Add label as permanent popup
+            const labelPopup = L.popup({
+                closeButton: false,
+                autoClose: false,
+                closeOnClick: false
+            })
+                .setLatLng([lat, lon])
+                .setContent(labelText)
+                .addTo(map);
+
+            // Store label
+            const labelObj = { coord: parsed, text: labelText, id: Date.now() + Math.random(), layer: labelPopup };
+
+            labels.push(labelObj);
+
+            // Add entry to label list
+            aggiungiVoceListaLabel(labelObj);
+
+            // Center map on label
+            map.setView([lat, lon]);
+        });
+
+        // Calculate distance between two points in nautical miles
+        function distanzaNM(latlng1, latlng2) {
+            const R = 6371e3; // earth radius in meters
+            const toRad = x => x * Math.PI / 180;
+            const φ1 = toRad(latlng1.lat);
+            const φ2 = toRad(latlng2.lat);
+            const Δφ = toRad(latlng2.lat - latlng1.lat);
+            const Δλ = toRad(latlng2.lng - latlng1.lng);
+
+            const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+                Math.cos(φ1) * Math.cos(φ2) *
+                Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            const d = R * c; // distance in meters
+            return d / 1852; // in nautical miles
+        }
+
+        // Calculate bearing (direction) between two points in degrees
+        function bearing(latlng1, latlng2) {
+            const toRad = x => x * Math.PI / 180;
+            const toDeg = x => x * 180 / Math.PI;
+            const φ1 = toRad(latlng1.lat);
+            const φ2 = toRad(latlng2.lat);
+            const Δλ = toRad(latlng2.lng - latlng1.lng);
+
+            const y = Math.sin(Δλ) * Math.cos(φ2);
+            const x = Math.cos(φ1) * Math.sin(φ2) -
+                Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
+            let θ = Math.atan2(y, x);
+            θ = toDeg(θ);
+            return (θ + 360) % 360;
+        }
+
+        function toggleEraserMode() {
+            eraserEnabled = !eraserEnabled;
+            const mapDiv = document.getElementById('map');
+            if (eraserEnabled) {
+                mapDiv.classList.add('eraser-cursor');
+                // Enable eraser on all existing lines
+                lines.forEach(function (line) {
+                    line.on('click', eraserHandler);
+                });
+            } else {
+                mapDiv.classList.remove('eraser-cursor');
+                // Disable eraser on all lines
+                lines.forEach(function (line) {
+                    line.off('click', eraserHandler);
+                });
+            }
+        }
+
+        function eraserHandler(e) {
+            if (eraserEnabled) {
+                map.removeLayer(this);
+                // Remove line from lines array
+                lines = lines.filter(l => l !== this);
+            }
+        }
+
+        function toggleLineDrawingMode() {
+            lineDrawingEnabled = !lineDrawingEnabled;
+            const mapDiv = document.getElementById('map');
+            if (lineDrawingEnabled) {
+                map.on('click', startLine);
+                mapDiv.classList.add('line-draw-cursor');
+            } else {
+                map.off('click', startLine);
+                mapDiv.classList.remove('line-draw-cursor');
+                if (currentLine) {
+                    map.removeLayer(currentLine);
+                    currentLine = null;
+                }
+                // Remove temp line if present
+                if (tempLine) {
+                    map.removeLayer(tempLine);
+                    tempLine = null;
+                }
+                map.off('mousemove', updateTempLine);
+                map.off('click', finishLine);
+            }
+        }
+
+        function startLine(e) {
+            if (!currentLine) {
+                currentLine = L.polyline([e.latlng], { color: 'blue' }).addTo(map);
+
+                // Create temp line
+                tempLine = L.polyline([e.latlng, e.latlng], { color: 'blue', dashArray: '5, 10' }).addTo(map);
+
+                // Update temp line as mouse moves
+                map.on('mousemove', updateTempLine);
+
+                map.on('click', finishLine);
+            }
+        }
+
+        function updateTempLine(e) {
+            if (tempLine && currentLine) {
+                const start = currentLine.getLatLngs()[0];
+                tempLine.setLatLngs([start, e.latlng]);
+            }
+        }
+        function finishLine(e) {
+            if (currentLine) {
+                currentLine.addLatLng(e.latlng);
+                lines.push(currentLine);
+
+                // Remove temp line
+                if (tempLine) {
+                    map.removeLayer(tempLine);
+                    tempLine = null;
+                }
+                map.off('mousemove', updateTempLine);
+
+                // ...rest of your finishLine code...
+                const latlngs = currentLine.getLatLngs();
+                if (latlngs.length >= 2) {
+                    const start = latlngs[0];
+                    const end = latlngs[latlngs.length - 1];
+                    const lunghezza = distanzaNM(start, end).toFixed(2);
+                    const dir1 = bearing(start, end).toFixed(1);
+                    const dir2 = bearing(end, start).toFixed(1);
+
+                    currentLine.bindPopup(
+                        `Length: <b>${lunghezza} NM</b><br>` +
+                        `Direction: <b>${dir1}°</b> / <b>${dir2}°</b>`
+                    );
+                }
+
+                currentLine.on('click', function (e) {
+                    if (eraserEnabled) {
+                        eraserHandler.call(this, e);
+                    } else {
+                        this.openPopup(e.latlng);
+                    }
+                });
+
+                if (eraserEnabled) {
+                    currentLine.on('click', eraserHandler);
+                }
+
+                currentLine = null;
+                map.off('click', finishLine);
+            }
+        }
+
+        function clearLines() {
+            lines.forEach(function (line) {
+                map.removeLayer(line);
+            });
+            lines = [];
+        }
+
+        document.getElementById('addSegnapostoBtn').addEventListener('click', function () {
+            const coordInput = document.getElementById('coordinateSegnaposto').value.trim();
+            const imageInput = document.getElementById('imageUpload').files[0];
+
+            if (!coordInput) {
+                alert("Enter a valid coordinate.");
+                return;
+            }
+
+            if (!imageInput) {
+                alert("Upload an image for the marker.");
+                return;
+            }
+
+            const parsed = parseCoordinate(coordInput);
+            if (!parsed) {
+                alert("Coordinate format error.");
+                return;
+            }
+
+            const lat = parseFloat(parsed[0]);
+            const lon = parseFloat(parsed[1]);
+
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                const imageUrl = event.target.result;
+
+                // Create custom icon with uploaded image
+                const customIcon = L.icon({
+                    iconUrl: imageUrl,
+                    iconSize: [32, 32],
+                    iconAnchor: [16, 32],
+                });
+
+                // Add marker with custom icon
+                const marker = L.marker([lat, lon], { icon: customIcon }).addTo(map);
+
+                // Store marker
+                const segnapostoObj = { coord: parsed, icon: customIcon, id: Date.now() + Math.random(), layer: marker };
+                segnaposti.push(segnapostoObj);
+
+                // Add entry to marker list
+                aggiungiVoceListaSegnaposto(segnapostoObj);
+
+                // Center map on marker
+                map.setView([lat, lon]);
+            };
+
+            reader.readAsDataURL(imageInput);
+        });
+
+        document.getElementById('addAreaBtn').addEventListener('click', function () {
+            const coordInput = document.getElementById('coordinate').value.trim();
+            const radiusInput = document.getElementById('radius').value.trim();
+
+            if (!coordInput) {
+                alert("Enter a valid coordinate.");
+                return;
+            }
+
+            if (!radiusInput) {
+                alert("Enter a valid radius.");
+                return;
+            }
+
+            const parsed = parseCoordinate(coordInput);
+            if (!parsed) {
+                alert("Coordinate format error.");
+                return;
+            }
+
+            const lat = parseFloat(parsed[0]);
+            const lon = parseFloat(parsed[1]);
+            const radius = parseFloat(radiusInput);
+
+            // Add circle to map
+            const circle = L.circle([lat, lon], {
+                color: 'red',
+                fillColor: '#f03',
+                fillOpacity: 0.5,
+                radius: radius * 1852 // Convert nautical miles to meters
+            }).addTo(map);
+
+            // Store circle
+            const circleObj = { coord: parsed, radius: radius, id: Date.now() + Math.random(), layer: circle };
+            circleList.push(circleObj);
+
+            // Add entry to circle list
+            aggiungiVoceListaCircle(circleObj);
+
+            // Center map on circle
+            map.setView([lat, lon]);
+        });
+
+        function aggiungiCoordinate() {
+            const input = document.getElementById('coordinateInput').value.trim();
+            if (!input) {
+                alert("Enter at least one coordinate.");
+                return;
+            }
+
+            const lines = input.split('\n');
+            const coords = [];
+
+            for (let line of lines) {
+                const parsed = parseCoordinate(line);
+                if (!parsed) {
+                    alert("Coordinate format error: " + line);
+                    return;
+                }
+                coords.push(parsed);
+            }
+
+            const polygon = L.polygon(coords, { color: 'blue' }).addTo(map);
+            poligoni.push(polygon);
+
+            // Add coordinates to list
+            coords.forEach(coord => {
+                const coordObj = { coord: coord, id: Date.now() + Math.random() };
+                coordList.push(coordObj);
+                aggiungiVoceListaCoord(coordObj);
+            });
+
+            // Center map on polygon
+            if (coords.length > 0) {
+                map.setView(coords[0]);
+            }
+        }
+
+        function aggiungiVoceListaCoord(coordObj) {
+            const li = document.createElement('li');
+            li.textContent = coordObj.coord.join(', ');
+            li.dataset.id = coordObj.id;
+            li.addEventListener('click', function () {
+                const index = coordList.findIndex(c => c.id === coordObj.id);
+                if (index !== -1) {
+                    map.removeLayer(poligoni[index]);
+                    poligoni.splice(index, 1);
+                    coordList.splice(index, 1);
+                    li.remove();
+                }
+            });
+            document.getElementById('listaCoord').appendChild(li);
+        }
+
+        function aggiungiVoceListaCircle(circleObj) {
+            const li = document.createElement('li');
+            li.textContent = circleObj.coord.join(', ') + " - Radius: " + circleObj.radius + " NM";
+            li.dataset.id = circleObj.id;
+            li.addEventListener('click', function () {
+                const index = circleList.findIndex(c => c.id === circleObj.id);
+                if (index !== -1) {
+                    map.removeLayer(circleList[index].layer);
+                    circleList.splice(index, 1);
+                    li.remove();
+                }
+            });
+            document.getElementById('listaCircles').appendChild(li);
+        }
+
+        function aggiungiVoceListaSegnaposto(segnapostoObj) {
+            const li = document.createElement('li');
+            li.textContent = segnapostoObj.coord.join(', ');
+            li.dataset.id = segnapostoObj.id;
+            li.addEventListener('click', function () {
+                const index = segnaposti.findIndex(s => s.id === segnapostoObj.id);
+                if (index !== -1) {
+                    map.removeLayer(segnaposti[index].layer);
+                    segnaposti.splice(index, 1);
+                    li.remove();
+                }
+            });
+            document.getElementById('listaSegnaposto').appendChild(li);
+        }
+
+        function aggiungiVoceListaLabel(labelObj) {
+            const li = document.createElement('li');
+            li.textContent = labelObj.coord.join(', ') + " - " + labelObj.text;
+            li.dataset.id = labelObj.id;
+            li.addEventListener('click', function () {
+                const index = labels.findIndex(l => l.id === labelObj.id);
+                if (index !== -1) {
+                    map.removeLayer(labels[index].layer);
+                    labels.splice(index, 1);
+                    li.remove();
+                }
+            });
+            document.getElementById('listaLabels').appendChild(li);
+        }
+
+        function parseCoordinate(coord) {
+            const regex = /(-?\d+\.?\d*)[\s,]+(-?\d+\.?\d*)/;
+            const match = coord.match(regex);
+            if (!match) return null;
+            return [parseFloat(match[1]), parseFloat(match[2])];
+        }
+
+        function resetAll() {
+            // Remove all polygons
+            poligoni.forEach(polygon => map.removeLayer(polygon));
+            poligoni = [];
+            coordList = [];
+            document.getElementById('listaCoord').innerHTML = '';
+
+            // Remove all circles
+            circleList.forEach(circle => map.removeLayer(circle.layer));
+            circleList = [];
+            document.getElementById('listaCircles').innerHTML = '';
+
+            // Remove all markers
+            segnaposti.forEach(segnaposto => map.removeLayer(segnaposto.layer));
+            segnaposti = [];
+            document.getElementById('listaSegnaposto').innerHTML = '';
+
+            // Remove all labels
+            labels.forEach(label => map.removeLayer(label.layer));
+            labels = [];
+            document.getElementById('listaLabels').innerHTML = '';
+
+            // Remove all lines
+            clearLines();
+        }
+    </script>
+</body>
+
+</html>
