@@ -1,7 +1,7 @@
 # LocalMapHtml - Maritime Analysis Tool
 
 This project is a browser-based tool designed for maritime analysis, allowing users to interactively add, visualize, and manage various geographic features on a map. The tool is implemented as a single HTML file and is intended to be run locally in your web browser (no server required).
-
+![Demo Screenshot](DEMO.png)
 ## Features
 
 - **Insert Polygons**  
