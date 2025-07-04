@@ -667,10 +667,40 @@
         }
 
         function parseCoordinate(coord) {
-            const regex = /(-?\d+\.?\d*)[\s,]+(-?\d+\.?\d*)/;
-            const match = coord.match(regex);
-            if (!match) return null;
-            return [parseFloat(match[1]), parseFloat(match[2])];
+            // Remove extra spaces and convert to uppercase for consistency
+            coord = coord.trim().toUpperCase().replace(/\s+/g, ' ');
+            
+            // Try DMS format first (e.g., "47 32.00N 011 40.00W" or "47-32.00N 011-40.00E")
+            const dmsRegex = /(\d{1,3})[-\s](\d{1,2}\.?\d*)([NS])\s+(\d{1,3})[-\s](\d{1,2}\.?\d*)([EW])/;
+            const dmsMatch = coord.match(dmsRegex);
+            
+            if (dmsMatch) {
+                const latDeg = parseFloat(dmsMatch[1]);
+                const latMin = parseFloat(dmsMatch[2]);
+                const latDir = dmsMatch[3];
+                const lonDeg = parseFloat(dmsMatch[4]);
+                const lonMin = parseFloat(dmsMatch[5]);
+                const lonDir = dmsMatch[6];
+                
+                // Convert degrees-minutes to decimal degrees
+                let lat = latDeg + (latMin / 60);
+                let lon = lonDeg + (lonMin / 60);
+                
+                // Apply direction signs
+                if (latDir === 'S') lat = -lat;
+                if (lonDir === 'W') lon = -lon;
+                
+                return [lat, lon];
+            }
+            
+            // Try simple decimal format (e.g., "45.5, 10.2" or "45.5 10.2")
+            const decimalRegex = /(-?\d+\.?\d*)[\s,]+(-?\d+\.?\d*)/;
+            const decimalMatch = coord.match(decimalRegex);
+            if (decimalMatch) {
+                return [parseFloat(decimalMatch[1]), parseFloat(decimalMatch[2])];
+            }
+            
+            return null;
         }
 
         function resetAll() {
