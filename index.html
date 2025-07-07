@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MatMap - Maritime Analysis Tool</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+    <div id="sidebar">
+        <div class="panel">
+            <div class="panel-header" onclick="togglePanel(this)">Insert Polygons</div>
+            <div class="panel-content">
+                <textarea id="coordinateInput"
+                    placeholder="One coordinate per line e.g:&#10;08-20.60N 093-10.50E&#10;8.24N 93.10E"></textarea>
+                <button onclick="aggiungiCoordinate()">Add coordinates</button>
+                <button onclick="resetAll()">Reset All</button>
+                <h4>Added coordinates:</h4>
+                <ul id="listaCoord"></ul>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-header" onclick="togglePanel(this)">Insert Circular Area</div>
+            <div class="panel-content">
+                <div class="input-box">
+                    <label for="coordinate">Coordinate (Lat, Lon): </label>
+                    <input type="text" id="coordinate" placeholder="E.g. 37.7749,-122.4194" />
+                </div>
+                <div class="input-box">
+                    <label for="radius">Radius (in nautical miles): </label>
+                    <input type="number" id="radius" placeholder="E.g. 10" />
+                </div>
+                <button id="addAreaBtn">Add Circular Area</button>
+                <ul id="listaCircles"></ul>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-header" onclick="togglePanel(this)">Insert Marker</div>
+            <div class="panel-content">
+                <div class="input-box">
+                    <label for="coordinateSegnaposto">Coordinate (Lat, Lon): </label>
+                    <input type="text" id="coordinateSegnaposto" placeholder="E.g. 37.7749,-122.4194" />
+                </div>
+                <div class="input-box">
+                    <label for="imageUpload">Upload marker image: </label>
+                    <input type="file" id="imageUpload" accept="image/*" />
+                </div>
+                <button id="addSegnapostoBtn">Add Marker</button>
+                <ul id="listaSegnaposto"></ul>
+            </div>
+        </div>
+        <div class="panel">
+            <div class="panel-header" onclick="togglePanel(this)">Insert Label</div>
+            <div class="panel-content">
+                <div class="input-box">
+                    <label for="coordinateLabel">Coordinate (Lat, Lon): </label>
+                    <input type="text" id="coordinateLabel" placeholder="E.g. 37.7749,-122.4194" />
+                </div>
+                <div class="input-box">
+                    <label for="labelText">Label text: </label>
+                    <input type="text" id="labelText" placeholder="Enter label text" />
+                </div>
+                <button id="addLabelBtn">Add Label</button>
+                <ul id="listaLabels"></ul>
+            </div>
+        </div>
+        <div class="panel">
+            <div class="panel-header" onclick="togglePanel(this)">Draw Lines</div>
+            <div class="panel-content">
+                <div>
+                    <label for="toggleLineDrawing">Enable Line Drawing: </label>
+                    <input type="checkbox" id="toggleLineDrawing" onclick="toggleLineDrawingMode()" />
+                </div>
+                <div style="margin-top:8px;">
+                    <label for="toggleEraser">Eraser: </label>
+                    <input type="checkbox" id="toggleEraser" onclick="toggleEraserMode()" />
+                </div>
+                <button onclick="clearLines()">Clear</button>
+            </div>
+        </div>
+        <div>
+        <button id="saveJsonBtn">Save JSON</button>
+        </div>
+        <div>
+            <input type="file" id="loadJsonInput" style="display:none" accept=".json"/>
+            <button id="loadJsonBtn">Load JSON</button>
+        </div>
+    </div>
+    
+    <div id="map"></div>
+    <div id="mouse-coords"></div>
+     <div style="position:fixed;left:320px;bottom:10px;z-index:1001;font-size:13px;background:rgba(255,255,255,0.8);padding:4px 10px;border-radius:6px;">
+        Map data &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors,
+        <a href="https://www.openseamap.org/" target="_blank">OpenSeaMap</a>
+    </div>
+    
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="script.js"></script>
+</body>
+
+</html>
